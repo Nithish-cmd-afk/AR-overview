@@ -21,8 +21,8 @@ export const AR_CONFIG = {
 
   // High-performance CV and Tracking configuration
   cv: {
-    maxScanDimension: 384, // Optimized resolution for ultra-fast <2ms CV processing (rock-solid 60 FPS)
-    trackingLostTimeoutMs: 850 // Smooth hysteresis hold time when marker is briefly occluded
+    maxScanDimension: 720, // Crisp resolution for instantaneous and reliable QR detection from any distance
+    trackingLostTimeoutMs: 1200 // Smooth hysteresis hold time when marker is briefly occluded
   },
 
   // Pose filter tuning (Optimized One-Euro Filter for rapid 360 navigation with zero jitter)

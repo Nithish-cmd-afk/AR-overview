@@ -16,8 +16,13 @@
     }
   }
   </script>
-  <!-- jsQR Marker Detector Library -->
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <!-- jsQR Marker Detector Library (Local bundle with CDN fallback) -->
+  <script src="js/libs/jsQR.js"></script>
+  <script>
+    if (!window.jsQR) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"><\/script>');
+    }
+  </script>
 </head>
 <body>
   <!-- Fullscreen WebRTC Camera Video Layer -->

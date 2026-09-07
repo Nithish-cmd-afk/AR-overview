@@ -493,17 +493,17 @@ export class GeneratorStudio {
       // Dynamic import or global QRCode generator
       const QRCode = window.QRCode || (await import('qrcode')).default;
 
-      // Render high resolution QR to temporary canvas
+      // Render high resolution QR to temporary canvas with clean quiet zone
       const qrSize = 400;
       const qrTempCanvas = document.createElement('canvas');
       await QRCode.toCanvas(qrTempCanvas, targetUrl, {
         width: qrSize,
-        margin: 2,
+        margin: 3,
         color: {
           dark: '#000000',
           light: '#ffffff'
         },
-        errorCorrectionLevel: 'H' // High error correction level for reliable physical tracking
+        errorCorrectionLevel: 'M' // Medium error correction level for maximum module contrast and fast CV detection
       });
 
       // Composite onto final canvas with card frame, instructions & brand styling
@@ -534,14 +534,15 @@ export class GeneratorStudio {
       const qrOffset = (totalWidth - qrSize) / 2;
       ctx.drawImage(qrTempCanvas, qrOffset, 90, qrSize, qrSize);
 
-      // Corner target registration brackets for easier physical alignment
+      // Corner target registration brackets cleanly outside the QR quiet zone
       ctx.strokeStyle = '#0284c7';
-      ctx.lineWidth = 4;
-      const bracketLen = 25;
-      const bLeft = qrOffset;
-      const bTop = 90;
-      const bRight = qrOffset + qrSize;
-      const bBottom = 90 + qrSize;
+      ctx.lineWidth = 3;
+      const bracketLen = 20;
+      const pad = 8;
+      const bLeft = qrOffset - pad;
+      const bTop = 90 - pad;
+      const bRight = qrOffset + qrSize + pad;
+      const bBottom = 90 + qrSize + pad;
 
       // Top-Left
       ctx.beginPath();

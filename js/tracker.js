@@ -407,17 +407,11 @@ export class ARTracker {
   processFrame(imageData, jsQRFunction, timestamp = performance.now(), scaleX = 1.0, scaleY = 1.0, originalWidth = null, originalHeight = null) {
     if (!imageData || !jsQRFunction) return;
 
-    // Fast initial scan (dontInvert) for instant 60 FPS performance
+    // When searching or lost, attemptBoth ensures instant lock even under screen glare or dim lighting
+    const inversionMode = (this.status === 'searching' || this.status === 'lost') ? "attemptBoth" : "dontInvert";
     let code = jsQRFunction(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert"
+      inversionAttempts: inversionMode
     });
-
-    // If not detected and searching/lost, try invert (e.g. for dark/inverted markers)
-    if (!code && (this.status === 'searching' || this.status === 'lost')) {
-      code = jsQRFunction(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "onlyInvert"
-      });
-    }
 
     const imgW = originalWidth || (imageData.width * scaleX);
     const imgH = originalHeight || (imageData.height * scaleY);
