@@ -39,7 +39,7 @@ export const AR_CONFIG = {
   maxUploadSizeMb: 50,
 
   // Default hosted Base URL
-  hostedBaseUrl: "https://avinesh-10.github.io/AR-Creator/ar.html",
+  hostedBaseUrl: "https://nithish-cmd-afk.github.io/AR-overview/ar.html",
 
   // Default AR transformation offsets
   defaults: {
