@@ -196,14 +196,12 @@ export class ArExperience {
   }
 
   async initCamera() {
-    // Check HTTPS security requirement
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-      this.showError("AR requires a secure HTTPS connection or localhost. Please deploy to GitHub Pages (HTTPS) or run a local secure server.");
-      return;
-    }
-
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      this.showError("Your browser does not support camera access (getUserMedia API). Please update to the latest Chrome or Safari.");
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        this.showError("Camera access requires a secure HTTPS connection. Please deploy to GitHub Pages (HTTPS) or use an HTTPS tunnel.");
+      } else {
+        this.showError("Your browser does not support camera access (getUserMedia API). Please update to the latest Chrome or Safari.");
+      }
       return;
     }
 
@@ -223,15 +221,16 @@ export class ArExperience {
       await this.videoElement.play();
 
       this.videoElement.onloadedmetadata = () => {
-        this.cvCanvas.width = this.videoElement.videoWidth || 1280;
-        this.cvCanvas.height = this.videoElement.videoHeight || 720;
+        this.updateCameraFov();
       };
     } catch (err) {
       console.error("Camera access error:", err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        this.showError("Camera permission denied. Please enable camera access in your browser settings to use WebAR.");
+        this.showError("Camera permission denied. Please enable camera permissions in your mobile browser settings to view 3D models in AR.");
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        this.showError("No camera device found on this system.");
+        this.showError("No camera device detected on your mobile device.");
+      } else if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        this.showError("Mobile browsers require HTTPS for camera access. Please open the live GitHub Pages link: https://nithish-cmd-afk.github.io/AR-overview/ar.html");
       } else {
         this.showError(`Unable to start camera: ${err.message || 'Unknown error'}`);
       }
