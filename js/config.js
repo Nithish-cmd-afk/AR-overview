@@ -40,8 +40,8 @@ export const AR_CONFIG = {
 
   // Default hosted Base URL
   appName: "AR - Augmented Reality",
-  repoName: "ar-augmentedreality",
-  hostedBaseUrl: "https://nithish-cmd-afk.github.io/ar-augmentedreality/ar.html",
+  repoName: "AR-overview",
+  hostedBaseUrl: "https://nithish-cmd-afk.github.io/AR-overview/ar.html",
 
   // Default AR transformation offsets
   defaults: {
