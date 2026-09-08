@@ -72,6 +72,13 @@ export class GeneratorStudio {
     this.btnDownloadPng = document.getElementById('btn-download-qr-png');
     this.btnLaunchAr = document.getElementById('btn-launch-ar');
 
+    // Tabs & Workspaces
+    this.tabStudio = document.getElementById('tab-studio');
+    this.tabShowcase = document.getElementById('tab-showcase');
+    this.studioWorkspace = document.getElementById('studio-workspace');
+    this.showcaseWorkspace = document.getElementById('showcase-workspace');
+    this.showcaseGrid = document.getElementById('showcase-grid');
+
     // Set default base URL for AR (prioritizing hosted GitHub Pages)
     const currentOrigin = window.location.origin;
     let currentPath = window.location.pathname;
@@ -343,6 +350,22 @@ export class GeneratorStudio {
       }
     });
 
+    // Tab Switching
+    this.tabStudio?.addEventListener('click', () => {
+      this.tabStudio.classList.add('active');
+      this.tabShowcase?.classList.remove('active');
+      if (this.studioWorkspace) this.studioWorkspace.style.display = 'grid';
+      if (this.showcaseWorkspace) this.showcaseWorkspace.style.display = 'none';
+    });
+
+    this.tabShowcase?.addEventListener('click', () => {
+      this.tabShowcase.classList.add('active');
+      this.tabStudio?.classList.remove('active');
+      if (this.studioWorkspace) this.studioWorkspace.style.display = 'none';
+      if (this.showcaseWorkspace) this.showcaseWorkspace.style.display = 'block';
+      this.renderShowcaseGallery();
+    });
+
     // Download PNG
     this.btnDownloadPng?.addEventListener('click', () => {
       this.downloadQrPng();
@@ -455,26 +478,105 @@ export class GeneratorStudio {
     this.previewModel.rotation.y = this.config.rotationY;
   }
 
-  buildArUrl() {
+  buildArUrl(modelId = this.selectedModelId, customConfig = null) {
     let baseUrl = this.baseUrlInput ? this.baseUrlInput.value.trim() : this.defaultBaseUrl;
     if (!baseUrl) baseUrl = this.defaultBaseUrl;
 
     const url = new URL(baseUrl, window.location.href);
-    url.searchParams.set('id', this.selectedModelId);
-    if (this.remoteModelUrl) {
+    url.searchParams.set('m', modelId);
+
+    const conf = customConfig || this.config;
+    if (this.remoteModelUrl && modelId === this.selectedModelId) {
       url.searchParams.set('modelUrl', this.remoteModelUrl);
     }
-    url.searchParams.set('scale', this.config.scale.toFixed(2));
-    url.searchParams.set('height', this.config.height.toFixed(2));
-    if (this.config.offsetX !== 0) url.searchParams.set('ox', this.config.offsetX.toFixed(2));
-    if (this.config.offsetZ !== 0) url.searchParams.set('oz', this.config.offsetZ.toFixed(2));
-    if (this.config.rotationY !== 0) url.searchParams.set('rot', Math.round((this.config.rotationY * 180) / Math.PI));
-    if (this.config.autoRotate) {
-      url.searchParams.set('ar', '1');
-      url.searchParams.set('spd', this.config.autoRotateSpeed.toFixed(3));
+    
+    // Only append non-default overrides to keep QR code simple and fast to scan
+    const preset = AR_CONFIG.models[modelId];
+    if (preset) {
+      if (conf.scale !== preset.scale) url.searchParams.set('scale', conf.scale.toFixed(2));
+      if (conf.height !== preset.height) url.searchParams.set('height', conf.height.toFixed(2));
+      if (conf.autoRotate) {
+        url.searchParams.set('ar', '1');
+        url.searchParams.set('spd', conf.autoRotateSpeed.toFixed(3));
+      }
     }
 
     return url.toString();
+  }
+
+  /**
+   * Render all preset model QR cards into the Multi-Model Showcase Gallery
+   */
+  async renderShowcaseGallery() {
+    if (!this.showcaseGrid) return;
+    if (this.showcaseGrid.dataset.rendered === 'true') return;
+
+    this.showcaseGrid.innerHTML = '';
+    const QRCode = window.QRCode || (await import('qrcode')).default;
+
+    for (const [modelId, preset] of Object.entries(AR_CONFIG.models)) {
+      const card = document.createElement('div');
+      card.className = 'showcase-card';
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 240;
+      canvas.height = 240;
+
+      const modelUrl = this.buildArUrl(modelId);
+
+      // Generate compact QR code
+      await QRCode.toCanvas(canvas, modelUrl, {
+        width: 240,
+        margin: 3,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'M'
+      });
+
+      const title = document.createElement('div');
+      title.className = 'showcase-card-title';
+      title.textContent = preset.name;
+
+      const subtitle = document.createElement('div');
+      subtitle.className = 'showcase-card-subtitle';
+      subtitle.textContent = `Scale: ${preset.scale}x • Height: ${preset.height}m`;
+
+      const actions = document.createElement('div');
+      actions.style.width = '100%';
+      actions.style.display = 'flex';
+      actions.style.gap = '0.5rem';
+
+      const btnTest = document.createElement('a');
+      btnTest.className = 'btn btn-secondary';
+      btnTest.textContent = 'Launch AR';
+      btnTest.href = modelUrl;
+      btnTest.target = '_blank';
+
+      const btnSelect = document.createElement('button');
+      btnSelect.className = 'btn btn-primary';
+      btnSelect.textContent = 'Customize';
+      btnSelect.addEventListener('click', () => {
+        this.modelSelect.value = modelId;
+        this.selectedModelId = modelId;
+        this.loadPresetModel(modelId);
+        this.generateQrCode();
+        this.tabStudio?.click();
+      });
+
+      actions.appendChild(btnSelect);
+      actions.appendChild(btnTest);
+
+      card.appendChild(canvas);
+      card.appendChild(title);
+      card.appendChild(subtitle);
+      card.appendChild(actions);
+
+      this.showcaseGrid.appendChild(card);
+    }
+
+    this.showcaseGrid.dataset.rendered = 'true';
   }
 
   /**

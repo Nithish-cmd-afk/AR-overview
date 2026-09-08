@@ -67,6 +67,32 @@ html, body {
   gap: 0.75rem;
 }
 
+/* Dynamic Model Switch Toast */
+.hud-toast {
+  align-self: center;
+  margin-top: 0.75rem;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--primary);
+  color: #38bdf8;
+  padding: 0.6rem 1.4rem;
+  border-radius: var(--radius-full);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+  backdrop-filter: blur(16px);
+  animation: toastPop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+@keyframes toastPop {
+  0% { opacity: 0; transform: translateY(-8px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .btn-icon {
   width: 42px;
   height: 42px;

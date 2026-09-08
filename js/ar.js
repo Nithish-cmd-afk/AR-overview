@@ -12,11 +12,16 @@ import { getModelBlobUrl } from './procedural-models.js';
 
 export class ArExperience {
   constructor() {
-    this.modelId = 'helicopter';
+    this.modelId = null;
+    this.customModelUrl = null;
     this.modelLoader = new ModelLoader();
     this.model = null;
     this.markerGroup = new THREE.Group();
     this.clock = new THREE.Clock();
+    this.modelCache = new Map(); // In-memory 3D model cache for instant 0ms switching
+    this.isLoadingModel = false;
+    this.isUniversalMode = false;
+    this.lastDecodedQr = null;
 
     // Configuration parsed from URL or defaults
     this.config = {
@@ -39,25 +44,52 @@ export class ArExperience {
     this.initThree();
     this.initTracker();
     this.initCamera();
-    this.load3dModel();
+
+    if (this.modelId) {
+      this.load3dModel(this.modelId);
+    } else {
+      this.isUniversalMode = true;
+      this.showLoading(false);
+      this.showToast("✦ Universal Scanner: Point at any QR code ✦", 4000);
+    }
+
     this.bindControls();
   }
 
   parseUrlParams() {
     const params = new URLSearchParams(window.location.search);
-    if (params.has('id')) this.modelId = params.get('id');
+    
+    // Support compact 'm' (model), 'id', or 'model' query keys
+    if (params.has('m')) this.modelId = params.get('m');
+    else if (params.has('id')) this.modelId = params.get('id');
+    else if (params.has('model')) this.modelId = params.get('model');
+    
     if (params.has('modelUrl')) this.customModelUrl = params.get('modelUrl');
 
-    const preset = AR_CONFIG.models[this.modelId] || AR_CONFIG.models.helicopter;
-    if (preset) {
-      this.config.scale = preset.scale;
-      this.config.height = preset.height;
-      this.config.offsetX = preset.offsetX || 0;
-      this.config.offsetZ = preset.offsetZ || 0;
-      this.config.rotationY = preset.rotationY || 0;
-      this.config.autoRotate = preset.autoRotate || false;
+    if (this.modelId && this.modelId !== 'all' && this.modelId !== 'universal') {
+      const preset = AR_CONFIG.models[this.modelId];
+      if (preset) {
+        this.applyPresetConfig(preset);
+      }
+    } else {
+      this.modelId = null;
     }
 
+    this.applyParamOverrides(params);
+    this.initialConfig = { ...this.config };
+  }
+
+  applyPresetConfig(preset) {
+    if (!preset) return;
+    this.config.scale = preset.scale !== undefined ? preset.scale : AR_CONFIG.defaults.scale;
+    this.config.height = preset.height !== undefined ? preset.height : AR_CONFIG.defaults.height;
+    this.config.offsetX = preset.offsetX || 0;
+    this.config.offsetZ = preset.offsetZ || 0;
+    this.config.rotationY = preset.rotationY || 0;
+    this.config.autoRotate = preset.autoRotate || false;
+  }
+
+  applyParamOverrides(params) {
     if (params.has('scale')) this.config.scale = parseFloat(params.get('scale'));
     if (params.has('height')) this.config.height = parseFloat(params.get('height'));
     if (params.has('ox')) this.config.offsetX = parseFloat(params.get('ox'));
@@ -66,9 +98,116 @@ export class ArExperience {
     if (params.has('ar')) this.config.autoRotate = params.get('ar') === '1' || params.get('ar') === 'true';
     if (params.has('spd')) this.config.autoRotateSpeed = parseFloat(params.get('spd'));
     if (params.has('speed')) this.config.autoRotateSpeed = parseFloat(params.get('speed'));
+  }
 
-    // Store defaults for Reset function
-    this.initialConfig = { ...this.config };
+  /**
+   * Parse any QR code payload string into modelId and config options
+   */
+  parseQrPayload(qrData) {
+    if (!qrData || typeof qrData !== 'string') return null;
+
+    let modelId = null;
+    let customUrl = null;
+    const configOverrides = {};
+
+    try {
+      // Check if qrData is a URL
+      if (qrData.startsWith('http://') || qrData.startsWith('https://') || qrData.includes('ar.html') || qrData.includes('?')) {
+        let urlObj;
+        try {
+          urlObj = new URL(qrData, window.location.href);
+        } catch {
+          urlObj = new URL(window.location.origin + '/' + qrData);
+        }
+
+        const params = urlObj.searchParams;
+        if (params.has('m')) modelId = params.get('m');
+        else if (params.has('id')) modelId = params.get('id');
+        else if (params.has('model')) modelId = params.get('model');
+
+        if (params.has('modelUrl')) customUrl = params.get('modelUrl');
+        if (params.has('scale')) configOverrides.scale = parseFloat(params.get('scale'));
+        if (params.has('height')) configOverrides.height = parseFloat(params.get('height'));
+        if (params.has('spd')) configOverrides.autoRotateSpeed = parseFloat(params.get('spd'));
+        if (params.has('ar')) configOverrides.autoRotate = params.get('ar') === '1' || params.get('ar') === 'true';
+      } else if (qrData.startsWith('ar:') || qrData.startsWith('model:')) {
+        modelId = qrData.split(':')[1]?.trim();
+      } else {
+        // Direct string match against registered model catalog
+        const clean = qrData.toLowerCase().trim();
+        if (AR_CONFIG.models[clean]) {
+          modelId = clean;
+        } else {
+          // Check substring matches
+          for (const key of Object.keys(AR_CONFIG.models)) {
+            if (clean.includes(key)) {
+              modelId = key;
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not parse QR payload:", qrData, e);
+    }
+
+    if (modelId) {
+      return { modelId, customUrl, configOverrides };
+    }
+    return null;
+  }
+
+  /**
+   * Seamlessly switch to a new 3D model on the fly without page reload
+   */
+  async switchModel(newModelId, configOverrides = {}) {
+    if (!newModelId) return;
+    if (newModelId === this.modelId && this.model && !this.isLoadingModel) return;
+
+    console.log(`[WebAR] ✦ Switching to 3D Model: ${newModelId}`);
+    this.modelId = newModelId;
+    const preset = AR_CONFIG.models[newModelId];
+
+    if (preset) {
+      this.applyPresetConfig(preset);
+    }
+    Object.assign(this.config, configOverrides);
+
+    const displayName = preset ? preset.name : newModelId.toUpperCase();
+    if (this.modelNameLabel) {
+      this.modelNameLabel.textContent = displayName;
+    }
+    this.updateControlsUI();
+    this.showToast(`✦ Switched to ${displayName} ✦`);
+
+    // Detach current model from marker
+    if (this.model) {
+      this.markerGroup.remove(this.model);
+      this.model = null;
+    }
+
+    // Check if model already in fast memory cache
+    if (this.modelCache.has(newModelId)) {
+      const cachedModel = this.modelCache.get(newModelId);
+      this.model = cachedModel;
+      this.markerGroup.add(cachedModel);
+      this.updateModelTransform();
+      console.log(`[WebAR] ✓ Loaded ${newModelId} instantly from memory cache`);
+      return;
+    }
+
+    // Asynchronously load and cache new model
+    await this.load3dModel(newModelId);
+  }
+
+  showToast(message, durationMs = 2800) {
+    if (!this.hudToast) return;
+    this.hudToast.textContent = message;
+    this.hudToast.style.display = 'flex';
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => {
+      if (this.hudToast) this.hudToast.style.display = 'none';
+    }, durationMs);
   }
 
   initElements() {
@@ -84,6 +223,7 @@ export class ArExperience {
     this.errorModal = document.getElementById('error-modal');
     this.errorMsg = document.getElementById('error-modal-msg');
     this.modelNameLabel = document.getElementById('hud-model-name');
+    this.hudToast = document.getElementById('hud-toast');
 
     // Controls
     this.btnScaleMinus = document.getElementById('btn-scale-minus');
@@ -94,8 +234,11 @@ export class ArExperience {
     this.btnFullscreen = document.getElementById('btn-ar-fullscreen');
 
     if (this.modelNameLabel) {
-      const preset = AR_CONFIG.models[this.modelId];
-      this.modelNameLabel.textContent = preset ? preset.name : this.modelId.toUpperCase();
+      if (this.modelId && AR_CONFIG.models[this.modelId]) {
+        this.modelNameLabel.textContent = AR_CONFIG.models[this.modelId].name;
+      } else {
+        this.modelNameLabel.textContent = "UNIVERSAL AR SCANNER";
+      }
     }
 
     this.updateControlsUI();
@@ -190,9 +333,19 @@ export class ArExperience {
       onStatusChange: (status) => this.handleTrackingStatus(status),
       onPoseUpdate: (pose) => this.handlePoseUpdate(pose),
       onQrDecoded: (data) => {
-        console.log("Tracked QR Code decoded URL:", data);
+        this.handleQrDecoded(data);
       }
     });
+  }
+
+  handleQrDecoded(data) {
+    if (!data) return;
+    const parsed = this.parseQrPayload(data);
+    if (parsed && parsed.modelId) {
+      if (parsed.modelId !== this.modelId || !this.model) {
+        this.switchModel(parsed.modelId, parsed.configOverrides);
+      }
+    }
   }
 
   async initCamera() {
@@ -230,25 +383,28 @@ export class ArExperience {
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         this.showError("No camera device detected on your mobile device.");
       } else if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-        this.showError("Mobile browsers require HTTPS for camera access. Please open the live GitHub Pages link: https://nithish-cmd-afk.github.io/AR-overview/ar.html");
+        this.showError("Mobile browsers require HTTPS for camera access. Please open the live GitHub Pages link: https://nithish-cmd-afk.github.io/ar-augmentedreality/ar.html");
       } else {
         this.showError(`Unable to start camera: ${err.message || 'Unknown error'}`);
       }
     }
   }
 
-  async load3dModel() {
-    this.showLoading(true, 15, "Loading 3D Model...");
+  async load3dModel(targetModelId = this.modelId) {
+    if (!targetModelId) return;
+    this.isLoadingModel = true;
+    this.showLoading(true, 15, `Loading 3D Model (${targetModelId})...`);
+    
     try {
       let modelSourceUrl;
       if (this.customModelUrl) {
         modelSourceUrl = this.customModelUrl;
-      } else if (AR_CONFIG.models[this.modelId]?.isProcedural || ['helicopter', 'drone', 'robot', 'car'].includes(this.modelId)) {
-        modelSourceUrl = getModelBlobUrl(this.modelId);
-      } else if (AR_CONFIG.models[this.modelId]?.file) {
-        modelSourceUrl = AR_CONFIG.models[this.modelId].file;
+      } else if (AR_CONFIG.models[targetModelId]?.isProcedural || ['helicopter', 'drone', 'robot', 'car'].includes(targetModelId)) {
+        modelSourceUrl = getModelBlobUrl(targetModelId);
+      } else if (AR_CONFIG.models[targetModelId]?.file) {
+        modelSourceUrl = AR_CONFIG.models[targetModelId].file;
       } else {
-        modelSourceUrl = `models/${this.modelId}.glb`;
+        modelSourceUrl = `models/${targetModelId}.glb`;
       }
 
       const model = await this.modelLoader.load(modelSourceUrl, (percent, loadedMb, totalMb) => {
@@ -256,14 +412,22 @@ export class ArExperience {
         this.showLoading(true, percent, `Loading 3D Model...${mbInfo}`);
       });
 
+      // Detach any previous model
+      if (this.model) {
+        this.markerGroup.remove(this.model);
+      }
+
       this.model = model;
+      this.modelCache.set(targetModelId, model); // Save to in-memory cache
       this.markerGroup.add(model);
       this.updateModelTransform();
       this.showLoading(false);
+      this.isLoadingModel = false;
     } catch (err) {
-      console.error("Failed to load model:", err);
+      console.error(`Failed to load model [${targetModelId}]:`, err);
       this.showLoading(false);
-      this.showError("Failed to load 3D model. Please verify GLB asset URL and format.");
+      this.isLoadingModel = false;
+      this.showError(`Failed to load 3D model [${targetModelId}]. Please verify GLB asset.`);
     }
   }
 
@@ -281,7 +445,7 @@ export class ArExperience {
 
     switch (status) {
       case 'searching':
-        this.statusText.textContent = 'SEARCHING FOR QR...';
+        this.statusText.textContent = this.isUniversalMode && !this.model ? 'POINT AT ANY QR CODE...' : 'SEARCHING FOR QR...';
         if (this.lostBanner) this.lostBanner.style.display = 'none';
         this.isTrackingActive = false;
         break;

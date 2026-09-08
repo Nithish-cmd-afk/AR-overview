@@ -39,7 +39,9 @@ export const AR_CONFIG = {
   maxUploadSizeMb: 50,
 
   // Default hosted Base URL
-  hostedBaseUrl: "https://nithish-cmd-afk.github.io/AR-overview/ar.html",
+  appName: "AR - Augmented Reality",
+  repoName: "ar-augmentedreality",
+  hostedBaseUrl: "https://nithish-cmd-afk.github.io/ar-augmentedreality/ar.html",
 
   // Default AR transformation offsets
   defaults: {

@@ -1,6 +1,8 @@
-# Custom WebAR QR-Code 3D AR System — No Unity
+# AR - Augmented Reality (Universal WebAR 3D System)
 
-A production-quality, browser-based **WebAR application** that allows users to upload/select 3D `.glb` models, preview and configure spatial parameters, generate high-contrast dual-purpose AR QR markers, scan them with any mobile smartphone camera, and view the 3D model **spatially anchored directly above the physical QR code** in full 6 Degrees of Freedom (6DOF).
+A production-quality, browser-based **WebAR application** that allows users to upload/select 3D `.glb` models, preview and configure spatial parameters, generate compact dual-purpose AR QR markers, scan with any mobile smartphone camera, and view 3D models **spatially anchored directly above physical QR codes** in full 6 Degrees of Freedom (6DOF).
+
+> **Universal AR Scanning**: Open the AR viewer **once** (`ar.html`), point your camera at any QR code marker, and the 3D model automatically loads and switches on the fly without page reloads or closing tabs.
 
 > **Strict Web Standards**: Built with HTML5, CSS3, JavaScript (ES6+), Three.js, WebGL, and WebRTC. **Zero Unity. Zero Native App Installs.**
 
@@ -8,13 +10,14 @@ A production-quality, browser-based **WebAR application** that allows users to u
 
 ## 🚀 Key Features
 
-- **Dual-Purpose QR Code**: The QR code encodes the experience URL (e.g. `ar.html?id=helicopter`) and simultaneously serves as the physical computer-vision tracking marker.
+- **Universal Multi-Model Scanning**: Point your phone camera at different QR codes in real-time — the 3D viewer instantly identifies the marker and swaps models on the fly with zero-latency memory caching.
+- **Dual-Purpose Compact QR Code**: Encodes short, clean URLs (`ar.html?m=car`, etc.) and simultaneously serves as the physical computer-vision tracking marker.
 - **Physical 6DOF Pose Estimation**: Calculates real-time 3D camera-relative position $(X, Y, Z)$ and orientation $(\text{Roll}, \text{Pitch}, \text{Yaw})$ so you can walk around the physical marker in 360° to view the model from front, sides, top, and back.
 - **One-Euro (1€) Jitter Filter**: Eliminates hand jitter while preserving zero-latency response during rapid camera movement.
 - **Three.js PBR Pipeline**: ACES Filmic tone mapping, ambient hemisphere & directional key/fill lights, and shadow maps to ensure models render with vibrant fidelity.
-- **Built-in 3D Assets**: Pre-loaded with procedural binary GLB models (Tactical Helicopter, Quadcopter Drone, Cyber Sentinel Robot, Hyper Cybercar).
-- **Studio Configurator**: Real-time 3D OrbitControls preview, scale/height/offset tuning, custom `.glb` upload, and high-resolution printable QR generator.
-- **Dark Glassmorphism HUD**: Responsive status indicators (`SEARCHING`, `QR DETECTED`, `TRACKING`, `QR LOST`), scale stepper, auto-rotation toggle, and fullscreen mode.
+- **Built-in 3D Assets**: Pre-loaded with models (Tactical Helicopter, Quadcopter Drone, Cyber Sentinel Robot, Cybercar, Taj Mahal, Eiffel Tower, Spider, Spiderman, Earth, Tower House).
+- **Studio Configurator & Multi-Model Gallery**: Real-time 3D OrbitControls preview, scale/height/offset tuning, 0–50 MB `.glb` upload, and a Multi-Model QR Gallery for side-by-side scanning.
+- **Dark Glassmorphism HUD**: Responsive status indicators (`SEARCHING`, `QR DETECTED`, `TRACKING`, `QR LOST`), dynamic model switch toasts, scale stepper, auto-rotation toggle, and fullscreen mode.
 - **Zero-Build Deployment**: Works out of the box on GitHub Pages or any static HTTPS host.
 
 ---
@@ -22,24 +25,25 @@ A production-quality, browser-based **WebAR application** that allows users to u
 ## 📂 Project Structure
 
 ```text
-custom-webar/
+ar-augmentedreality/
 ├── index.html                 # Modern landing page showcasing features & demo launchers
-├── generator.html             # AR experience studio & QR code generator with 3D preview
-├── ar.html                    # Fullscreen mobile-optimized AR camera tracking & 3D view
+├── generator.html             # AR experience studio & Multi-Model QR Gallery
+├── ar.html                    # Universal fullscreen mobile-optimized AR camera tracking & 3D view
 │
 ├── css/
 │   ├── style.css              # Global dark futuristic theme & glassmorphic layout
-│   ├── generator.css          # Creator/generator studio styling & range sliders
-│   └── ar.css                 # Clean AR HUD overlay, tracking status pills & drawer
+│   ├── generator.css          # Creator studio styling & Multi-Model Gallery grid
+│   └── ar.css                 # Clean AR HUD overlay, tracking status pills & toast alerts
 │
 ├── js/
 │   ├── config.js              # AR config schema, model catalogue & default parameters
 │   ├── tracker.js             # 6DOF Coplanar PnP / Homography pose solver & 1€ filter
 │   ├── model-loader.js        # Three.js GLTFLoader manager with PBR lighting & animations
-│   ├── generator.js           # 3D preview viewport, GLB upload handling, QR generator
-│   ├── ar.js                  # AR camera loop, marker tracking pipeline & spatial anchor
+│   ├── generator.js           # 3D preview viewport, GLB upload handling, QR generator & gallery
+│   ├── ar.js                  # Universal AR camera loop, dynamic model switcher & spatial anchor
 │   ├── procedural-models.js   # Procedural GLB binary models (helicopter, drone, robot, car)
 │   ├── glb-builder.js         # Pure JS glTF 2.0 binary builder
+│   ├── libs/jsQR.js           # High-precision QR computer vision detector
 │   └── main.js                # Landing page interactivity & quick launch modal
 │
 ├── package.json               # Node & Vite configuration
@@ -48,48 +52,16 @@ custom-webar/
 
 ---
 
-## 🛠️ Installation & Local Development
-
-### 1. Prerequisites
-- Node.js (v18+) or any local static web server (e.g., Python `http.server`, VS Code Live Server).
-
-### 2. Clone & Install Dependencies
-```bash
-# Navigate to project directory
-cd "d:/project/AR final"
-
-# Install dev dependencies (optional, for local Vite dev server)
-npm install
-```
-
-### 3. Run Development Server
-```bash
-# Start local server with Vite
-npm run dev
-```
-
-### 4. Testing Camera on Mobile via Local Network (HTTPS)
-Camera access (`navigator.mediaDevices.getUserMedia`) requires a **secure context (HTTPS)** or `localhost`.
-
-To test on a physical smartphone on your local Wi-Fi:
-1. Run Vite with basic SSL or use [ngrok](https://ngrok.com/):
-   ```bash
-   npx ngrok http 5173
-   ```
-2. Open the generated `https://xxxx.ngrok-free.app` URL on your phone.
-
----
-
 ## 🌐 Live Production Deployment (GitHub Pages)
 
 Your WebAR application is hosted live at:
 ```text
-https://nithish-cmd-afk.github.io/AR-overview/
+https://nithish-cmd-afk.github.io/ar-augmentedreality/
 ```
 
-- **Landing Page**: `https://nithish-cmd-afk.github.io/AR-overview/`
-- **AR Generator Studio**: `https://nithish-cmd-afk.github.io/AR-overview/generator.html`
-- **AR Camera Viewer**: `https://nithish-cmd-afk.github.io/AR-overview/ar.html?id=helicopter`
+- **Landing Page**: `https://nithish-cmd-afk.github.io/ar-augmentedreality/`
+- **Universal AR Scanner**: `https://nithish-cmd-afk.github.io/ar-augmentedreality/ar.html`
+- **AR Studio & Multi-Model Gallery**: `https://nithish-cmd-afk.github.io/ar-augmentedreality/generator.html`
 
 ---
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AR Experience Studio & QR Generator — Custom WebAR</title>
-  <meta name="description" content="Configure 3D GLB models in real-time 3D, tune scale and height, and generate high-contrast printable AR QR markers.">
+  <title>AR Studio & Multi-Model QR Generator — AR - Augmented Reality</title>
+  <meta name="description" content="Configure 3D models, generate compact QR markers, and scan multiple models dynamically in real-time AR.">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/generator.css">
 
@@ -30,18 +30,30 @@
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
       </svg>
-      <span>Custom WebAR</span>
+      <span>AR - Augmented Reality</span>
       <span class="brand-badge">Studio</span>
     </a>
     <div class="nav-links">
       <a href="index.html" class="nav-link">Home</a>
-      <a href="ar.html?id=helicopter" class="nav-link">Quick AR Demo</a>
+      <a href="ar.html" class="nav-link" style="color: #38bdf8; font-weight: 600;">⚡ Universal AR Scanner</a>
       <a href="index.html#how-it-works" class="nav-link">Guide</a>
     </div>
   </nav>
 
+  <!-- Mode Switch Tabs -->
+  <div class="mode-tabs">
+    <button id="tab-studio" class="mode-tab-btn active">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Single Model Customizer
+    </button>
+    <button id="tab-showcase" class="mode-tab-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      ⚡ Multi-Model QR Gallery (Scan All at Once)
+    </button>
+  </div>
+
   <!-- Studio Workspace -->
-  <main class="studio-container">
+  <main id="studio-workspace" class="studio-container">
     <!-- Left Column: 3D Preview Viewport -->
     <div class="viewport-card">
       <div class="viewport-header">
@@ -199,7 +211,7 @@
 
         <div class="form-group" style="margin-top: 0.75rem;">
           <label class="form-label">Target AR Webpage URL</label>
-          <input type="text" id="input-base-url" class="text-input" placeholder="https://nithish-cmd-afk.github.io/AR-overview/ar.html">
+          <input type="text" id="input-base-url" class="text-input" placeholder="https://nithish-cmd-afk.github.io/ar-augmentedreality/ar.html">
         </div>
 
         <!-- High-Contrast Printable QR Output Frame -->
@@ -222,6 +234,28 @@
       </div>
     </div>
   </main>
+
+  <!-- Multi-Model QR Showcase Workspace -->
+  <section id="showcase-workspace" class="showcase-container" style="display: none;">
+    <div class="showcase-header">
+      <div>
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.35rem;">⚡ Universal Multi-Model AR Gallery</h2>
+        <p style="color: var(--text-dim); font-size: 0.9rem; margin: 0;">
+          Open the AR camera on your phone <strong>once</strong>, then pan your phone across these QR markers to switch 3D models dynamically on the fly!
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.75rem;">
+        <a href="ar.html" target="_blank" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Launch Universal AR Scanner
+        </a>
+      </div>
+    </div>
+
+    <div id="showcase-grid" class="showcase-grid">
+      <!-- Dynamic QR Cards for all models injected here -->
+    </div>
+  </section>
 
   <script type="module" src="js/generator.js"></script>
 </body>

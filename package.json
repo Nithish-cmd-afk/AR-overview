@@ -1,7 +1,7 @@
 {
-  "name": "custom-webar-qr-3d",
+  "name": "ar-augmentedreality",
   "version": "1.0.0",
-  "description": "Production-quality WebAR system with 6DOF QR-code marker tracking and Three.js 3D GLB rendering - No Unity",
+  "description": "AR - Augmented Reality: Universal WebAR 6DOF QR marker tracking and dynamic 3D multi-model rendering - No Unity",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
